@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/Project-👔-green?">
   </a> 
   
-  <a href="https://arxiv.org/pdf/2406.08009412" target='_blank'>
+  <a href="https://arxiv.org/pdf/2412.07154" target='_blank'>
     <img src="https://img.shields.io/badge/Paper-📖-blue?">
   </a> 
   
@@ -33,12 +33,15 @@ The code is comming soon.
 If you find our work helpful, please cite:
 
 ```bibtex
-<!-- @article{UVM-VSS,
-  title={Unified Vertex Motion Estimation for Integrated Video Stabilization and Stitching in Tractor-Trailer Wheeled Robots},
-  author={Deng, Yinan and Wang, Jiahui and Zhao, Jingyu and Dou, Jianyu and Yang, Yi and Yue, Yufeng},
-  journal={arXiv preprint arXiv:2406.08009},
-  year={2024}
-} -->
+@article{UVM-VSS,
+  title={Unified Vertex Motion Estimation for Integrated Video Stabilization and Stitching in Tractor-Trailer Wheeled Robots}, 
+  author={Hao Liang and Zhipeng Dong and Hao Li and Yufeng Yue and Mengyin Fu and Yi Yang},
+  year={2024},
+  eprint={2412.07154},
+  archivePrefix={arXiv},
+  primaryClass={cs.RO},
+  url={https://arxiv.org/abs/2412.07154}, 
+}
 ```
 
 ## 👏 Acknowledgements
