@@ -5,7 +5,7 @@
 
 
 <p align="center">
-  <a href="https://inin-drops.github.io/UJM-VSS/" target='_blank'>
+  <a href="https://inin-drops.github.io/UVM-VSS/" target='_blank'>
     <img src="https://img.shields.io/badge/Project-👔-green?">
   </a> 
   
