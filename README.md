@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/badge/Paper-📖-blue?">
   </a> 
   
-  <a href="https://youtu.be/BeUdxrjItDE" target='_blank'>
+  <a href="https://youtu.be/CqoVZQdvxU4" target='_blank'>
     <img src="https://img.shields.io/badge/Video-📹-red?">
   </a> 
 </p>
