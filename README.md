@@ -26,8 +26,37 @@ Tractor-trailer wheeled robots need to perform comprehensive perception tasks to
 
 ## 🛠  Install
 
-The code is comming soon.
+### Install the required libraries
+Use conda to install the required environment. To avoid problems, it is recommended to follow the instructions below to set up the environment.
 
+
+```bash
+conda env create -f environment.yaml
+conda activate uvm
+```
+### Clone this repo
+
+```bash
+git clone https://github.com/lhlawrence/UVM-VSS.git
+cd UVM-VSS
+```
+## 📊 Prepare dataset
+Please download the following datasets.
+* [UVM-VSS](https://huggingface.co/datasets/lhlawrence/UVM-VSS/resolve/main/data.zip) - unzip and place in root directory.
+
+## 🏃 Run
+### Main Code
+Run the following command.
+
+```bash
+# for front view stitching
+python front_view.py 
+# for rear view stitching
+python rear_view.py 
+# for UVM-VSS
+python stitch_dynamic.py 
+```
+You can see a visualization of the results in the ```data/final``` folder.
 ## 🔗 Citation
 
 If you find our work helpful, please cite:
