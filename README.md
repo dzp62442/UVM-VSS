@@ -21,25 +21,29 @@
 
  ## 🏠  Abstract
 Tractor-trailer wheeled robots need to perform comprehensive perception tasks to enhance their operations in areas such as logistics parks and long-haul transportation. The perception of these robots faces three major challenges: the asynchronous vibrations between the tractor and trailer, the relative pose change between the tractor and trailer, and the significant camera parallax caused by the large size. In this paper, we employ the Dual Independence Stabilization Motion Field Estimation method to address asynchronous vibrations between the tractor and trailer, effectively eliminating conflicting motion estimations for the same object in overlapping regions. We utilize the Random Plane-based Stitching Motion Field Estimation method to tackle the continuous relative pose changes caused by the articulated hitch between the tractor and trailer, thus eliminating dynamic misalignment in overlapping regions. Furthermore, we apply the Unified Vertex Motion Estimation method to manage the challenges posed by the tractor-trailer's large physical size, which results in severely low overlapping regions between the tractor and trailer views, thus preventing distortions in overlapping regions from exponentially propagating into non-overlapping areas. Furthermore, this framework has been successfully implemented in real tractor-trailer wheeled robots.  The proposed Unified Vertex Motion Video Stabilization and Stitching method has been thoroughly tested in various challenging scenarios, demonstrating its accuracy and practicality in real-world.
-<img src="https://github.com/lhlawrence/UVM-VSS/blob/main/poster.png">
+<img src="poster.png">
 
 
 ## 🛠  Install
 
-### Install the required libraries
-Use conda to install the required environment. To avoid problems, it is recommended to follow the instructions below to set up the environment.
-
-
-```bash
-conda env create -f environment.yaml
-conda activate uvm
-```
 ### Clone this repo
 
 ```bash
 git clone https://github.com/lhlawrence/UVM-VSS.git
 cd UVM-VSS
 ```
+
+### Install the required libraries
+Use conda to install the required environment. To avoid problems, it is recommended to follow the instructions below to set up the environment.
+
+
+```bash
+conda create -n uvm python=3.9
+conda activate uvm
+pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+pip install -r requirements.txt
+```
+
 ## 📊 Prepare dataset
 Please download the following datasets.
 * [UVM-VSS](https://huggingface.co/datasets/lhlawrence/UVM-VSS/resolve/main/data.zip) - unzip and place in root directory.

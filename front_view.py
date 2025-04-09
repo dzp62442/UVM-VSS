@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import tqdm
@@ -457,6 +458,8 @@ if __name__=='__main__':
             frontview = np.concatenate((stitched_seam_1[:, :-W//2, :], stitched_seam_2[:, W//2:, :]), axis=1)
             frontview_band = np.concatenate((stitched_band_1[:, :-W//2, :], stitched_band_2[:, W//2:, :]), axis=1)
 
+            os.makedirs('data/front/seamcut', exist_ok=True)
+            os.makedirs('data/front/multiband', exist_ok=True)
             cv2.imwrite('data/front/seamcut/'+'{:0{}d}'.format(frame_index + 0, 3) + '.jpg', frontview)
             cv2.imwrite('data/front/multiband/'+'{:0{}d}'.format(frame_index + 0, 3) + '.jpg', frontview_band)
 
