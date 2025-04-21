@@ -1,4 +1,4 @@
-
+import os
 import cv2
 import numpy as np
 import tqdm
@@ -560,6 +560,8 @@ if __name__=='__main__':
             rearview = np.concatenate((stitched_seam_1[:, :-W//2, :], stitched_seam_2[:, W//2:-W//2 - 2, :], stitched_seam_3[:, W//2:-W//2, :], stitched_seam_4[:, W//2:, :]), axis=1)
             rearview_band = np.concatenate((stitched_band_1[:, :-W//2, :], stitched_band_2[:, W//2:-W//2 - 2, :], stitched_band_3[:, W//2:-W//2, :], stitched_band_4[:, W//2:, :]), axis=1)
 
+            os.makedirs('data/rear/seamcut', exist_ok=True)
+            os.makedirs('data/rear/multiband', exist_ok=True)
             cv2.imwrite('data/rear/seamcut/'+'{:0{}d}'.format(frame_index + 0, 3) + '.jpg', rearview)
             cv2.imwrite('data/rear/multiband/'+'{:0{}d}'.format(frame_index + 0, 3) + '.jpg', rearview_band)
 

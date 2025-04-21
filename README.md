@@ -30,20 +30,24 @@ Tractor–trailer wheeled robots need to perform comprehensive perception tasks 
 
 ## 🛠  Install
 
-### Install the required libraries
-Use conda to install the required environment. To avoid problems, it is recommended to follow the instructions below to set up the environment.
-
-
-```bash
-conda env create -f environment.yaml
-conda activate uvm
-```
 ### Clone this repo
 
 ```bash
 git clone https://github.com/lhlawrence/UVM-VSS.git
 cd UVM-VSS
 ```
+
+### Install the required libraries
+Use conda to install the required environment. To avoid problems, it is recommended to follow the instructions below to set up the environment.
+
+
+```bash
+conda create -n uvm python=3.9
+conda activate uvm
+pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+pip install -r requirements.txt
+```
+
 ## 📊 Prepare dataset
 Please download the following datasets.
 * [UVM-VSS](https://huggingface.co/datasets/lhlawrence/UVM-VSS/resolve/main/data.zip) - unzip and place in root directory.

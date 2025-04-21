@@ -1,3 +1,4 @@
+import os
 import cv2
 import math
 import numpy as np
@@ -2883,6 +2884,8 @@ if __name__ == '__main__':
             overlap_w = W-2*O_1
             stitched_band_1 = multi_band_blending(img_l_1, img_r_1, mask, overlap_w, leveln, flag_half, need_mask)
 
+            os.makedirs('data/final/seamcut', exist_ok=True)
+            os.makedirs('data/final/multiband', exist_ok=True)
             cv2.imwrite('data/final/seamcut/'+'{:0{}d}'.format(frame_index + 0, 3) + '.jpg', stitched_seam_1)
             cv2.imwrite('data/final/multiband/'+'{:0{}d}'.format(frame_index + 0, 3) + '.jpg', stitched_band_1)
 
