@@ -100,51 +100,49 @@ if __name__ == '__main__':
         intrinsics = yaml.safe_load(file)
     dataset = MultiWarpDataset(config=sv_comp_cfg, intrinsics=intrinsics, is_train=False)
     num_frames = 1  # 一张图像复制若干次作为一个视频
-    os.makedirs('data/', exist_ok=True)
 
-    sample = dataset[2]
-    input_imgs, input_masks = sample[0], sample[1]
-    left_frames = [input_imgs[0]] * num_frames
-    right_frames = [input_imgs[1]] * num_frames
-    cv2.imwrite('data/left.jpg', left_frames[0])
-    cv2.imwrite('data/right.jpg', right_frames[0])
+    for idx in range(len(dataset)):
+        sample = dataset[idx]
+        input_imgs, input_masks = sample[0], sample[1]
+        left_frames = [input_imgs[0]] * num_frames
+        right_frames = [input_imgs[1]] * num_frames
+        os.makedirs(f'data/{idx}', exist_ok=True)
+        cv2.imwrite(f'data/{idx}/left.jpg', left_frames[0])
+        cv2.imwrite(f'data/{idx}/right.jpg', right_frames[0])
 
-    # Stablizer
-    stabilizer = MeshFlowStabilizer(visualize=True)
-    adaptive_weights_definition = MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED
+        # Stablizer
+        stabilizer = MeshFlowStabilizer(visualize=True)
+        adaptive_weights_definition = MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED
 
-    if not (adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_ORIGINAL or
-        adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED or
-        adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_HIGH or
-        adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_LOW):
-        raise ValueError(
-        'Invalid value for `adaptive_weights_definition`. Expecting value of '
-        '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_ORIGINAL`, '
-        '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED`, '
-        '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_HIGH`, or'
-        '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_LOW`.'
-    )
+        if not (adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_ORIGINAL or
+            adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED or
+            adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_HIGH or
+            adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_LOW):
+            raise ValueError(
+            'Invalid value for `adaptive_weights_definition`. Expecting value of '
+            '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_ORIGINAL`, '
+            '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED`, '
+            '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_HIGH`, or'
+            '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_LOW`.'
+        )
 
+        #前视图后视图,拼接运动场生成
+        vertex_left, vertex_right = stabilizer._get_stitch_vertex_displacements_and_homographies(num_frames, left_frames, right_frames)
+        #使用雅可比方法，计算网格顶点稳定后的运动场
+        vertex_stabilized_stitched_by_frame_index_1 = stabilizer._get_stitch_vertex_displacements(
+            num_frames, vertex_left
+        )
 
+        vertex_stabilized_stitched_by_frame_index_2 = stabilizer._get_stitch_vertex_displacements(
+            num_frames, vertex_right
+        )
 
+        stitcher = stitch_utils.stitch_utils(mesh_row_count=mesh_row_count, mesh_col_count=mesh_col_count, 
+                                            feature_ellipse_row_count=8, feature_ellipse_col_count=10)
 
-    #前视图后视图,拼接运动场生成
-    vertex_left, vertex_right = stabilizer._get_stitch_vertex_displacements_and_homographies(num_frames, left_frames, right_frames)
-    #使用雅可比方法，计算网格顶点稳定后的运动场
-    vertex_stabilized_stitched_by_frame_index_1 = stabilizer._get_stitch_vertex_displacements(
-        num_frames, vertex_left
-    )
-
-    vertex_stabilized_stitched_by_frame_index_2 = stabilizer._get_stitch_vertex_displacements(
-        num_frames, vertex_right
-    )
-
-    stitcher = stitch_utils.stitch_utils(mesh_row_count=mesh_row_count, mesh_col_count=mesh_col_count, 
-                                         feature_ellipse_row_count=8, feature_ellipse_col_count=10)
-
-    # stitched_frames = []
-    # stitched_frames_multiband = []
-    for frame_index in range(num_frames):
+        # stitched_frames = []
+        # stitched_frames_multiband = []
+        frame_index = 0
         left_frame_ = left_frames[frame_index]
         right_frame_ = right_frames[frame_index]
         
@@ -174,7 +172,5 @@ if __name__ == '__main__':
         overlap_w = W-2*O_1
         stitched_band_1 = multi_band_blending(img_l_1, img_r_1, mask, overlap_w, leveln, flag_half, need_mask)
 
-        os.makedirs('data/final/seamcut', exist_ok=True)
-        os.makedirs('data/final/multiband', exist_ok=True)
-        cv2.imwrite('data/final/seamcut/'+'{:0{}d}'.format(frame_index + 0, 3) + '.jpg', stitched_seam_1)
-        cv2.imwrite('data/final/multiband/'+'{:0{}d}'.format(frame_index + 0, 3) + '.jpg', stitched_band_1)
+        cv2.imwrite(f'data/{idx}/{frame_index:03d}_seamcut.jpg', stitched_seam_1)
+        cv2.imwrite(f'data/{idx}/{frame_index:03d}_multiband.jpg', stitched_band_1)
