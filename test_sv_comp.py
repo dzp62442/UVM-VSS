@@ -104,6 +104,7 @@ if __name__ == '__main__':
 
     psnr_list = []
     ssim_list = []
+    failure_num = 0
 
     for idx in range(len(dataset)):
         print(f'------------------ {idx} / {len(dataset)} ------------------')
@@ -113,121 +114,127 @@ if __name__ == '__main__':
         origin_w, origin_h = input_imgs[0].shape[1], input_imgs[0].shape[0]
         os.makedirs(f'data/{idx}', exist_ok=True)
 
-        batch_psnr_avg, batch_ssim_avg = 0, 0  # 当前batch的平均PSNR和SSIM
-        batch_psnr_list, batch_ssim_list = [], []  # 当前batch的PSNR和SSIM列表
+        try:
+            batch_psnr_avg, batch_ssim_avg = 0, 0  # 当前batch的平均PSNR和SSIM
+            batch_psnr_list, batch_ssim_list = [], []  # 当前batch的PSNR和SSIM列表
 
-        for j in range(sv_comp_cfg['input_img_num'] - 1):
-            # 生成待拼接的两路视频（单帧图像）
-            if j == 0:
-                left_frames = [input_imgs[j]] * num_frames
-                right_frames = [input_imgs[j+1]] * num_frames
-            else:
-                left_frames = middle_stitch_results
-                right_frames = [input_imgs[j+1]] * num_frames
+            for j in range(sv_comp_cfg['input_img_num'] - 1):
+                # 生成待拼接的两路视频（单帧图像）
+                if j == 0:
+                    left_frames = [input_imgs[j]] * num_frames
+                    right_frames = [input_imgs[j+1]] * num_frames
+                else:
+                    left_frames = middle_stitch_results
+                    right_frames = [input_imgs[j+1]] * num_frames
 
-            # Stablizer
-            stabilizer = MeshFlowStabilizer(visualize=True)
-            adaptive_weights_definition = MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED
+                # Stablizer
+                stabilizer = MeshFlowStabilizer(visualize=True)
+                adaptive_weights_definition = MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED
 
-            if not (adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_ORIGINAL or
-                adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED or
-                adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_HIGH or
-                adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_LOW):
-                raise ValueError(
-                'Invalid value for `adaptive_weights_definition`. Expecting value of '
-                '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_ORIGINAL`, '
-                '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED`, '
-                '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_HIGH`, or'
-                '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_LOW`.'
-            )
+                if not (adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_ORIGINAL or
+                    adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED or
+                    adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_HIGH or
+                    adaptive_weights_definition == MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_LOW):
+                    raise ValueError(
+                    'Invalid value for `adaptive_weights_definition`. Expecting value of '
+                    '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_ORIGINAL`, '
+                    '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_FLIPPED`, '
+                    '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_HIGH`, or'
+                    '`MeshFlowStabilizer.ADAPTIVE_WEIGHTS_DEFINITION_CONSTANT_LOW`.'
+                )
 
-            #前视图后视图,拼接运动场生成
-            vertex_left, vertex_right = stabilizer._get_stitch_vertex_displacements_and_homographies(num_frames, left_frames, right_frames)
-            #使用雅可比方法，计算网格顶点稳定后的运动场
-            vertex_stabilized_stitched_by_frame_index_1 = stabilizer._get_stitch_vertex_displacements(
-                num_frames, vertex_left
-            )
+                #前视图后视图,拼接运动场生成
+                vertex_left, vertex_right = stabilizer._get_stitch_vertex_displacements_and_homographies(num_frames, left_frames, right_frames)
+                #使用雅可比方法，计算网格顶点稳定后的运动场
+                vertex_stabilized_stitched_by_frame_index_1 = stabilizer._get_stitch_vertex_displacements(
+                    num_frames, vertex_left
+                )
 
-            vertex_stabilized_stitched_by_frame_index_2 = stabilizer._get_stitch_vertex_displacements(
-                num_frames, vertex_right
-            )
+                vertex_stabilized_stitched_by_frame_index_2 = stabilizer._get_stitch_vertex_displacements(
+                    num_frames, vertex_right
+                )
 
-            stitcher = stitch_utils.stitch_utils(mesh_row_count=mesh_row_count, mesh_col_count=mesh_col_count, 
-                                                feature_ellipse_row_count=8, feature_ellipse_col_count=10)
+                stitcher = stitch_utils.stitch_utils(mesh_row_count=mesh_row_count, mesh_col_count=mesh_col_count, 
+                                                    feature_ellipse_row_count=8, feature_ellipse_col_count=10)
 
-            # stitched_frames = []
-            # stitched_frames_multiband = []
-            frame_index = 0
-            left_frame_ = left_frames[frame_index]
-            right_frame_ = right_frames[frame_index]
-            
-            left_velocity_ = vertex_stabilized_stitched_by_frame_index_1[frame_index]
-            right_velocity_ = vertex_stabilized_stitched_by_frame_index_2[frame_index]
-            left_velocity_1_filter, right_velocity_1_filter, O_l_1, O_r_1, O_1 = motion_field_filter(left_velocity_, right_velocity_)
-            O_1 = O_1 + 5
-            # 网格变形
-            img_l_1 = stitcher.get_warped_frames_for_stitch(0, left_frame_, left_velocity_1_filter, O_l_1)
-            img_r_1 = stitcher.get_warped_frames_for_stitch(1, right_frame_, right_velocity_1_filter, O_r_1)
+                # stitched_frames = []
+                # stitched_frames_multiband = []
+                frame_index = 0
+                left_frame_ = left_frames[frame_index]
+                right_frame_ = right_frames[frame_index]
+                
+                left_velocity_ = vertex_stabilized_stitched_by_frame_index_1[frame_index]
+                right_velocity_ = vertex_stabilized_stitched_by_frame_index_2[frame_index]
+                left_velocity_1_filter, right_velocity_1_filter, O_l_1, O_r_1, O_1 = motion_field_filter(left_velocity_, right_velocity_)
+                O_1 = O_1 + 5
+                # 网格变形
+                img_l_1 = stitcher.get_warped_frames_for_stitch(0, left_frame_, left_velocity_1_filter, O_l_1)
+                img_r_1 = stitcher.get_warped_frames_for_stitch(1, right_frame_, right_velocity_1_filter, O_r_1)
 
-            # 缝合线选取
-            print(f"H = {H}, W = {W}, O_1 = {O_1}, W + 2*O_1 = {W + 2 * O_1}")
-            l = np.zeros((H, W + 2 * O_1, 3), np.uint8)
-            r = np.zeros((H, W + 2 * O_1, 3), np.uint8)
-            l[:, :W, :] = img_l_1
-            r[:, 2 * O_1:, :] = img_r_1
+                # 缝合线选取
+                print(f"H = {H}, W = {W}, O_1 = {O_1}, W + 2*O_1 = {W + 2 * O_1}")
+                l = np.zeros((H, W + 2 * O_1, 3), np.uint8)
+                r = np.zeros((H, W + 2 * O_1, 3), np.uint8)
+                l[:, :W, :] = img_l_1
+                r[:, 2 * O_1:, :] = img_r_1
 
-            # 生成掩码
-            l_mask = np.zeros((l.shape[0], l.shape[1]), dtype=np.uint8)
-            l_mask[np.any(l > 0, axis=2)] = 255
-            r_mask = np.zeros((r.shape[0], r.shape[1]), dtype=np.uint8)
-            r_mask[np.any(r > 0, axis=2)] = 255
+                # 生成掩码
+                l_mask = np.zeros((l.shape[0], l.shape[1]), dtype=np.uint8)
+                l_mask[np.any(l > 0, axis=2)] = 255
+                r_mask = np.zeros((r.shape[0], r.shape[1]), dtype=np.uint8)
+                r_mask[np.any(r > 0, axis=2)] = 255
 
-            # 掩码中白色区域可能存在细小黑点，通过形态学操作去除
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))  # 形态学操作去除细小黑点
-            l_mask = cv2.morphologyEx(l_mask, cv2.MORPH_CLOSE, kernel)  # 闭操作：先膨胀后腐蚀，填充小的黑点（在白色区域中）
-            r_mask = cv2.morphologyEx(r_mask, cv2.MORPH_CLOSE, kernel)
-            l_mask = cv2.morphologyEx(l_mask, cv2.MORPH_OPEN, kernel)  # 开操作：先腐蚀后膨胀，去除小的白点（在黑色背景上）
-            r_mask = cv2.morphologyEx(r_mask, cv2.MORPH_OPEN, kernel)
+                # 掩码中白色区域可能存在细小黑点，通过形态学操作去除
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))  # 形态学操作去除细小黑点
+                l_mask = cv2.morphologyEx(l_mask, cv2.MORPH_CLOSE, kernel)  # 闭操作：先膨胀后腐蚀，填充小的黑点（在白色区域中）
+                r_mask = cv2.morphologyEx(r_mask, cv2.MORPH_CLOSE, kernel)
+                l_mask = cv2.morphologyEx(l_mask, cv2.MORPH_OPEN, kernel)  # 开操作：先腐蚀后膨胀，去除小的白点（在黑色背景上）
+                r_mask = cv2.morphologyEx(r_mask, cv2.MORPH_OPEN, kernel)
 
-            # 计算重叠区域指标
-            l_mask_f = cv2.cvtColor(l_mask.astype(np.float32)/255, cv2.COLOR_GRAY2BGR)
-            r_mask_f = cv2.cvtColor(r_mask.astype(np.float32)/255, cv2.COLOR_GRAY2BGR)
-            overlap_mask = l_mask_f * r_mask_f
-            l_f = l.astype(np.float32)
-            r_f = r.astype(np.float32)
-            psnr_one = skimage.measure.compare_psnr(l_f*overlap_mask, r_f*overlap_mask, 255)
-            ssim_one = skimage.measure.compare_ssim(l_f*overlap_mask, r_f*overlap_mask, data_range=255, multichannel=True)
-            batch_psnr_list.append(psnr_one)
-            batch_ssim_list.append(ssim_one)
+                # 计算重叠区域指标
+                l_mask_f = cv2.cvtColor(l_mask.astype(np.float32)/255, cv2.COLOR_GRAY2BGR)
+                r_mask_f = cv2.cvtColor(r_mask.astype(np.float32)/255, cv2.COLOR_GRAY2BGR)
+                overlap_mask = l_mask_f * r_mask_f
+                l_f = l.astype(np.float32)
+                r_f = r.astype(np.float32)
+                psnr_one = skimage.measure.compare_psnr(l_f*overlap_mask, r_f*overlap_mask, 255)
+                ssim_one = skimage.measure.compare_ssim(l_f*overlap_mask, r_f*overlap_mask, data_range=255, multichannel=True)
+                batch_psnr_list.append(psnr_one)
+                batch_ssim_list.append(ssim_one)
 
-            stitched_seam_1 = seamcut(l, r)
+                stitched_seam_1 = seamcut(l, r)
 
-            # 多频段融合
-            flag_half = False
-            mask = None
-            need_mask =True     
-            leveln = 5
+                # 多频段融合
+                flag_half = False
+                mask = None
+                need_mask =True     
+                leveln = 5
 
-            overlap_w = W-2*O_1
-            stitched_band_1 = multi_band_blending(img_l_1, img_r_1, mask, overlap_w, leveln, flag_half, need_mask)
+                overlap_w = W-2*O_1
+                stitched_band_1 = multi_band_blending(img_l_1, img_r_1, mask, overlap_w, leveln, flag_half, need_mask)
 
-            cv2.imwrite(f"data/{idx}/{sv_comp_cfg['input_img_num']}_{j+2}_seamcut.jpg", stitched_seam_1)
-            cv2.imwrite(f"data/{idx}/{sv_comp_cfg['input_img_num']}_{j+2}_multiband.jpg", stitched_band_1)
+                cv2.imwrite(f"data/{idx}/{sv_comp_cfg['input_img_num']}_{j+2}_seamcut.jpg", stitched_seam_1)
+                cv2.imwrite(f"data/{idx}/{sv_comp_cfg['input_img_num']}_{j+2}_multiband.jpg", stitched_band_1)
 
-            middle_stitch_results = cv2.resize(stitched_seam_1, (sv_comp_cfg['net_input_width'], sv_comp_cfg['net_input_height']))
-            middle_stitch_results = [middle_stitch_results] * num_frames
+                middle_stitch_results = cv2.resize(stitched_seam_1, (origin_w, origin_h))
+                middle_stitch_results = [middle_stitch_results] * num_frames
 
-        batch_psnr_avg = np.mean(batch_psnr_list)
-        batch_ssim_avg = np.mean(batch_ssim_list)
-        print(f"batch_psnr_list: {batch_psnr_list}, batch_psnr_avg: {batch_psnr_avg}")
-        print(f"batch_ssim_list: {batch_ssim_list}, batch_ssim_avg: {batch_ssim_avg}")
+            batch_psnr_avg = np.mean(batch_psnr_list)
+            batch_ssim_avg = np.mean(batch_ssim_list)
+            print(f"batch_psnr_list: {batch_psnr_list}, batch_psnr_avg: {batch_psnr_avg}")
+            print(f"batch_ssim_list: {batch_ssim_list}, batch_ssim_avg: {batch_ssim_avg}")
 
-        psnr_list.append(batch_psnr_avg)
-        ssim_list.append(batch_ssim_avg)
+            psnr_list.append(batch_psnr_avg)
+            ssim_list.append(batch_ssim_avg)
+
+        except Exception as e:
+            failure_num += 1
+            logger.error(f"Error: {e}")
+            continue
 
     logger.info('<==================== Analysis ===================>')
     total_samples = len(dataset)
-    failure_num = 0  # TODO: 计算失败数量
+      # TODO: 计算失败数量
     thirty_percent_index = int((total_samples-failure_num) * 0.3)
     sixty_percent_index = int((total_samples-failure_num) * 0.6)
     logger.info(f'Fail num: {failure_num}, total num: {total_samples}, success num: {total_samples-failure_num}')

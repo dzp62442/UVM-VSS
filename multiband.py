@@ -79,8 +79,7 @@ def reconstruct(LS):
 
 def multi_band_blending(img1, img2, mask, overlap_w, leveln=None, flag_half=False, need_mask=False):
     if overlap_w < 0:
-        print ("error: overlap_w should be a positive integer")
-        sys.exit()
+        raise ValueError("overlap_w should be a positive integer")
 
     if need_mask:  # no input mask
         subA, subB, mask = preprocess(img1, img2, overlap_w, flag_half, True)
