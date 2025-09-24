@@ -45,6 +45,7 @@ Use conda to install the required environment. To avoid problems, it is recommen
 conda create -n uvm python=3.9
 conda activate uvm
 pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+pip install setuptools==65.5.1
 pip install -r requirements.txt
 ```
 
