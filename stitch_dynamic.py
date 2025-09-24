@@ -40,8 +40,9 @@ class MeshFlowStabilizer:
                  mesh_outlier_subframe_row_count=4, mesh_outlier_subframe_col_count=4,  # 图像划分为4*4，设立局部阈值RANSAC
                  feature_ellipse_row_count=8, feature_ellipse_col_count=10,  # 每个特征点所占椭圆覆盖的行\列
                  homography_min_number_corresponding_features=6,
-                 temporal_smoothing_radius=10,  # \Omega_t 时域平滑半径
+                 temporal_smoothing_radius=1,  # \Omega_t 时域平滑半径
                  optimization_num_iterations=100,  # 雅可比方法最小化能量函数时的迭代次数
+                 common_field=300,  # 特征匹配时重叠区域宽度
                  color_outside_image_area_bgr=(0, 0, 0),  # 稳定图像后设置背景色，避免图像无法覆盖窗口
                  multicore=4,
                  visualize=False):
@@ -91,6 +92,7 @@ class MeshFlowStabilizer:
         self.homography_min_number_corresponding_features = homography_min_number_corresponding_features
         self.temporal_smoothing_radius = temporal_smoothing_radius
         self.optimization_num_iterations = optimization_num_iterations
+        self.common_field = common_field
         self.color_outside_image_area_bgr = color_outside_image_area_bgr
         self.multicore = multicore
         self.visualize = visualize
@@ -508,17 +510,15 @@ class MeshFlowStabilizer:
         # early_features_by_subframe = []
         # late_features_by_subframe = []
 
-        common_field = 800
-
         # # TODO parallelize
         # for subframe_left_x in range(0, frame_width, subframe_width):
         #     for subframe_top_y in range(0, frame_height, subframe_height):
         # 依次取局部网格，顺序先行后列
-        early_subframe = early_frame[:, (frame_width - common_field): frame_width]
-        late_subframe = late_frame[:, 0: common_field]
+        early_subframe = early_frame[:, (frame_width - self.common_field): frame_width]
+        late_subframe = late_frame[:, 0: self.common_field]
         # # 局部网格左上角坐标
         # subframe_offset = [subframe_left_x, subframe_top_y]
-        subframe_offset = [(frame_width - common_field), 0]
+        subframe_offset = [(frame_width - self.common_field), 0]
         #此时early_features已经增加了偏移
         early_features, late_features = self.loftr_for_stitch(early_subframe, late_subframe, subframe_offset)
         # subframe_early_features, subframe_late_features = get_features_in_subframe(early_subframe, late_subframe, subframe_offset)
